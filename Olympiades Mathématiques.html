@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-slate-900 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Olympiades de Mathématiques & Logique</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- html2pdf.js pour la génération d'attestation PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- Chart.js pour les graphiques de résultats -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0284c7',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .cert-border {
+            border: 10px solid #1e293b;
+            outline: 2px solid #fbbf24;
+            outline-offset: -6px;
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col font-sans antialiased text-slate-200 bg-slate-950 selection:bg-indigo-500 selection:text-white">
+
+    <!-- Header Navigation -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="p-2 bg-gradient-to-tr from-indigo-600 to-violet-500 rounded-xl shadow-lg shadow-indigo-500/30">
+                    <i class="fa-solid font-bold fa-square-root-variable text-xl text-white"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight text-white">Olympiades de Mathématiques</h1>
+                    <p class="text-xs text-indigo-400 font-medium">Organisé par Steve SAM</p>
+                </div>
+            </div>
+
+            <!-- Timer Display (uniquement pendant l'épreuve) -->
+            <div id="timerContainer" class="hidden items-center bg-slate-800/90 border border-slate-700 px-4 py-1.5 rounded-full shadow-inner">
+                <i class="fa-solid fa-stopwatch text-amber-400 mr-2 animate-pulse"></i>
+                <span id="timerText" class="font-mono text-lg font-bold text-amber-400">45:00</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col justify-center">
+
+        <!-- STEP 1: FORMULAIRE D'INSCRIPTION -->
+        <section id="welcomeSection" class="glass-panel p-6 sm:p-10 rounded-2xl shadow-2xl relative overflow-hidden my-auto">
+            <div class="absolute -top-24 -right-24 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-24 -left-24 w-72 h-72 bg-violet-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="text-center max-w-2xl mx-auto mb-8">
+                <span class="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 mb-4">
+                    <i class="fa-solid fa-award"></i> Session Officielle • Steve SAM
+                </span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Prêt à relever le défi ?</h2>
+                <p class="mt-3 text-slate-400 text-sm sm:text-base">
+                    Testez vos facultés de raisonnement logique et de résolution de problèmes mathématiques. Vous disposez de <strong class="text-amber-400">45 minutes</strong> pour répondre à 15 questions à choix multiples.
+                </p>
+            </div>
+
+            <form id="registrationForm" onsubmit="startTest(event)" class="max-w-md mx-auto space-y-5">
+                <div>
+                    <label for="fullName" class="block text-xs font-medium text-slate-300 uppercase tracking-wider mb-2">
+                        Nom complet <span class="text-rose-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                            <i class="fa-regular fa-user"></i>
+                        </div>
+                        <input type="text" id="fullName" required placeholder="ex: Jean Dupont" 
+                            class="w-full pl-10 pr-4 py-3 bg-slate-800/80 border border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-white placeholder-slate-500 outline-none transition-all">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="schoolName" class="block text-xs font-medium text-slate-300 uppercase tracking-wider mb-2">
+                        Établissement scolaire / Université <span class="text-rose-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                            <i class="fa-solid fa-school"></i>
+                        </div>
+                        <input type="text" id="schoolName" required placeholder="ex: Lycée Pierre de Fermat" 
+                            class="w-full pl-10 pr-4 py-3 bg-slate-800/80 border border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-white placeholder-slate-500 outline-none transition-all">
+                    </div>
+                </div>
+
+                <div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50 space-y-2 text-xs text-slate-400">
+                    <div class="flex items-center text-slate-300 font-medium">
+                        <i class="fa-solid fa-circle-info text-indigo-400 mr-2"></i> Règles de l'épreuve :
+                    </div>
+                    <ul class="list-disc list-inside space-y-1 pl-1">
+                        <li>Durée stricte : <strong>45 minutes</strong> (soumission automatique en fin de chrono).</li>
+                        <li>Calculatrice non autorisée (papier et crayon recommandés).</li>
+                        <li>Une attestation officielle sera générée dès la validation.</li>
+                    </ul>
+                </div>
+
+                <button type="submit" 
+                    class="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/30 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center space-x-2 text-base">
+                    <span>Lancer le compte à rebours & Débuter</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </form>
+        </section>
+
+        <!-- STEP 2: LE TEST (QUESTIONS) -->
+        <section id="testSection" class="hidden flex-col space-y-6">
+            <!-- Barre de progression -->
+            <div class="bg-slate-800/60 p-4 rounded-xl border border-slate-700/60 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="w-full sm:w-1/2">
+                    <div class="flex justify-between text-xs text-slate-400 mb-1">
+                        <span>Progression</span>
+                        <span id="progressText">Question 1 / 15</span>
+                    </div>
+                    <div class="w-full bg-slate-700 rounded-full h-2 overflow-hidden">
+                        <div id="progressBar" class="bg-indigo-500 h-2 rounded-full transition-all duration-300" style="width: 6.66%"></div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-3 py-1 rounded-full font-medium" id="categoryBadge">
+                        Logique
+                    </span>
+                </div>
+            </div>
+
+            <!-- Card Question -->
+            <div class="glass-panel p-6 sm:p-8 rounded-2xl border border-slate-700/80 shadow-xl space-y-6 min-h-[350px] flex flex-col justify-between">
+                <div>
+                    <h3 id="questionTitle" class="text-xl sm:text-2xl font-bold text-white mb-6 leading-relaxed">
+                        <!-- Intitulé question -->
+                    </h3>
+
+                    <!-- Options de réponse -->
+                    <div id="optionsContainer" class="grid grid-cols-1 gap-3 sm:gap-4">
+                        <!-- Généré en JS -->
+                    </div>
+                </div>
+
+                <!-- Boutons de navigation -->
+                <div class="flex items-center justify-between pt-6 border-t border-slate-800">
+                    <button id="prevBtn" onclick="navigateQuestion(-1)" class="px-5 py-2.5 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 font-medium hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-arrow-left"></i> Précédent
+                    </button>
+                    
+                    <button id="nextBtn" onclick="navigateQuestion(1)" class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-all text-sm flex items-center gap-2 shadow-lg shadow-indigo-600/20">
+                        Suivant <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                    
+                    <button id="submitBtn" onclick="confirmFinishTest()" class="hidden px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-all text-sm items-center gap-2 shadow-lg shadow-emerald-600/20">
+                        <i class="fa-solid fa-check"></i> Terminer le Test
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- STEP 3: RÉSULTATS & ÉTUDE -->
+        <section id="resultSection" class="hidden space-y-8 my-auto">
+            <!-- Header Résultats -->
+            <div class="glass-panel p-6 sm:p-8 rounded-2xl text-center relative overflow-hidden">
+                <div class="inline-flex p-4 rounded-full bg-indigo-500/10 text-indigo-400 mb-4 border border-indigo-500/20">
+                    <i class="fa-solid fa-trophy text-4xl"></i>
+                </div>
+                <h2 class="text-3xl font-extrabold text-white">Résultats Officiels</h2>
+                <p class="text-slate-400 text-sm mt-1">Félicitations pour avoir complété les Olympiades !</p>
+
+                <!-- Score Circle -->
+                <div class="mt-6 flex flex-col items-center justify-center">
+                    <div class="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-400 tracking-tight" id="scoreDisplay">
+                        0 / 20
+                    </div>
+                    <span id="scorePercentage" class="text-sm font-semibold text-slate-400 mt-1">0% de réussite</span>
+                </div>
+            </div>
+
+            <!-- Analyse & Graphiques -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Analyse thématique -->
+                <div class="glass-panel p-6 rounded-2xl flex flex-col justify-between">
+                    <h4 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-pie text-indigo-400"></i> Répartition par domaine
+                    </h4>
+                    <div class="relative h-48 sm:h-56">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Analyse du niveau / Recommandations -->
+                <div class="glass-panel p-6 rounded-2xl flex flex-col justify-between space-y-4">
+                    <div>
+                        <h4 class="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-brain text-violet-400"></i> Étude personnalisée
+                        </h4>
+                        <div id="evaluationText" class="text-sm text-slate-300 leading-relaxed space-y-2">
+                            <!-- Texte d'évaluation généré dynamiquement -->
+                        </div>
+                    </div>
+                    
+                    <div class="pt-4 border-t border-slate-800 flex flex-col gap-3">
+                        <button onclick="downloadCertificate()" class="w-full py-3.5 px-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-xl shadow-lg shadow-amber-500/20 transition-all flex items-center justify-center gap-2 text-sm">
+                            <i class="fa-solid fa-file-pdf text-lg"></i> Télécharger mon Attestation
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Correction Détaillée -->
+            <div class="glass-panel p-6 rounded-2xl space-y-4">
+                <h4 class="text-lg font-bold text-white flex items-center gap-2 mb-4">
+                    <i class="fa-solid fa-list-check text-emerald-400"></i> Correction détaillée
+                </h4>
+                <div id="answersReviewContainer" class="space-y-3 max-h-96 overflow-y-auto pr-2">
+                    <!-- Généré par JS -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- CERTIFICAT HTML CACHÉ (Pour export PDF) -->
+    <div class="fixed top-0 left-[-9999px]">
+        <div id="certificateTemplate" class="w-[850px] h-[600px] bg-slate-900 text-slate-100 p-10 flex flex-col justify-between relative border-[12px] border-indigo-950 font-sans shadow-2xl overflow-hidden" style="box-sizing: border-box;">
+            <!-- Bordure décorative dorée interne -->
+            <div class="absolute inset-3 border-2 border-amber-500/60 pointer-events-none"></div>
+            
+            <!-- Arrière plan filigrane -->
+            <div class="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
+                <i class="fa-solid fa-square-root-variable text-[280px] text-indigo-400"></i>
+            </div>
+
+            <!-- En-tête -->
+            <div class="text-center space-y-1 relative z-10 pt-2">
+                <p class="text-xs uppercase tracking-[0.3em] text-amber-400 font-semibold">Organisé par Steve SAM</p>
+                <h1 class="text-3xl font-black uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-amber-200" style="color: #f59e0b;">ATTESTATION DE RÉUSSITE</h1>
+                <p class="text-xs text-slate-400 tracking-wider">Olympiades de Mathématiques & Logique</p>
+            </div>
+
+            <!-- Corps du certificat -->
+            <div class="text-center my-4 space-y-3 relative z-10">
+                <p class="text-xs text-slate-300 italic">Ceci certifie que</p>
+                <h2 id="certName" class="text-3xl font-bold text-white border-b-2 border-amber-500/80 inline-block px-10 py-1 tracking-wide">Jean Dupont</h2>
+                <p id="certSchool" class="text-sm font-medium text-indigo-300">Représentant l'établissement : Lycée Exemple</p>
+            </div>
+
+            <!-- Détails des résultats -->
+            <div class="text-center relative z-10 max-w-lg mx-auto bg-slate-800/80 p-4 rounded-xl border border-slate-700/80 shadow-inner space-y-1">
+                <p class="text-xs text-slate-400">A complété l'épreuve officielle de 45 minutes avec un score de :</p>
+                <p id="certScore" class="text-3xl font-black text-amber-400">16 / 20 (80%)</p>
+                <p id="certMention" class="text-xs font-bold text-indigo-400 uppercase tracking-widest">Mention : Très Bien</p>
+            </div>
+
+            <!-- Bas de page & Signatures -->
+            <div class="flex justify-between items-end pt-4 border-t border-slate-800 text-xs relative z-10">
+                <div class="space-y-1 text-slate-400">
+                    <p id="certDate"><strong class="text-slate-300">Date :</strong> --/--/----</p>
+                    <p><strong class="text-slate-300">Identifiant :</strong> <span id="certId" class="font-mono text-amber-400">OLYMP-0000</span></p>
+                </div>
+
+                <!-- Sceau / Logo -->
+                <div class="flex flex-col items-center">
+                    <div class="w-12 h-12 rounded-full border-2 border-amber-400 flex items-center justify-center text-amber-400 mb-1 bg-amber-500/10">
+                        <i class="fa-solid fa-award text-xl"></i>
+                    </div>
+                    <span class="text-[10px] text-amber-400 font-bold uppercase tracking-wider">Certifié Conforme</span>
+                </div>
+
+                <div class="text-center space-y-1">
+                    <div class="font-serif italic text-lg font-bold text-amber-300">Steve SAM</div>
+                    <div class="w-36 border-b border-slate-700"></div>
+                    <p class="text-[11px] font-semibold text-slate-300">Fondateur & Organisateur</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- BASE DE DONNÉES DES QUESTIONS (Logique & Mathématiques) ---
+        const questions = [
+            // LOGIQUE
+            {
+                id: 1,
+                category: "Logique",
+                question: "Si 3 chats peuvent attraper 3 souris en 3 minutes, combien de chats sont nécessaires pour attraper 100 souris en 100 minutes ?",
+                options: ["3 chats", "100 chats", "33 chats", "10 chats"],
+                answer: 0,
+                explanation: "Un chat attrape 1 souris en 3 minutes. En 100 minutes, 1 seul chat attrape 100/3 souris. Donc 3 chats attrapent 100 souris en 100 minutes !"
+            },
+            {
+                id: 2,
+                category: "Logique",
+                question: "Dans une suite logique : 2, 6, 12, 20, 30, ... Quel est le nombre suivant ?",
+                options: ["36", "40", "42", "48"],
+                answer: 2,
+                explanation: "La différence augmente de 2 à chaque étape (+4, +6, +8, +10...). Donc 30 + 12 = 42. (Ou n*(n+1) : 1x2, 2x3, 3x4, 4x5, 5x6, 6x7=42)."
+            },
+            {
+                id: 3,
+                category: "Logique",
+                question: "Alexandre ment le lundi, mardi et mercredi. Beatrice ment le jeudi, vendredi et samedi. Un jour, ils disent tous les deux : 'Hier, j'ai menti'. Quel jour sommes-nous ?",
+                options: ["Mercredi", "Jeudi", "Vendredi", "Dimanche"],
+                answer: 1,
+                explanation: "Le jeudi, Alexandre dit la vérité ('Hier [mercredi], j'ai menti' -> vrai). Beatrice ment le jeudi ('Hier [mercredi], j'ai menti' -> mensonge, car elle disait la vérité le mercredi)."
+            },
+            {
+                id: 4,
+                category: "Logique",
+                question: "Si Paul a deux fois l'âge qu'avait Jacques quand Paul avait l'âge actuel de Jacques, et que la somme de leurs âges est 63 ans, quel est l'âge de Paul ?",
+                options: ["28 ans", "32 ans", "36 ans", "42 ans"],
+                answer: 2,
+                explanation: "En posant l'écart d'âge d, on trouve que l'âge de Paul est 36 ans et celui de Jacques est 27 ans."
+            },
+            {
+                id: 5,
+                category: "Logique",
+                question: "Un livre coûte 10€ plus la moitié de son prix. Combien coûte ce livre ?",
+                options: ["15 €", "20 €", "25 €", "30 €"],
+                answer: 1,
+                explanation: "Soit P le prix. P = 10 + 0.5P => 0.5P = 10 => P = 20€."
+            },
+            // MATHÉMATIQUES - ALGÈBRE & NOMBRES
+            {
+                id: 6,
+                category: "Mathématiques",
+                question: "Quel est le dernier chiffre de 3^2026 ?",
+                options: ["1", "3", "9", "7"],
+                answer: 2,
+                explanation: "Les unités des puissances de 3 suivent un cycle de 4 : (3, 9, 7, 1). 2026 mod 4 = 2. Le 2ème membre du cycle est 9."
+            },
+            {
+                id: 7,
+                category: "Mathématiques",
+                question: "Résoudre dans ℝ : x² - y² = 21, où x et y sont des entiers naturels. Que vaut x + y ?",
+                options: ["7", "21", "11", "9"],
+                answer: 1,
+                explanation: "(x-y)(x+y) = 21. Comme x et y sont entiers naturels, les facteurs possibles sont (1, 21) ou (3, 7). Pour (x-y)=1 et (x+y)=21, x+y vaut direct 21."
+            },
+            {
+                id: 8,
+                category: "Mathématiques",
+                question: "Quelle est la moyenne de 2^10 et 2^20 ?",
+                options: ["2^15", "2^9 + 2^19", "2^29", "2^10 + 2^20"],
+                answer: 1,
+                explanation: "Moyenne = (2^10 + 2^20)/2 = 2^10/2 + 2^20/2 = 2^9 + 2^19."
+            },
+            {
+                id: 9,
+                category: "Mathématiques",
+                question: "Si f(x) + 2f(1-x) = x² pour tout x réel, que vaut f(1) ?",
+                options: ["1/3", "-1/3", "1", "0"],
+                answer: 1,
+                explanation: "Pour x=1: f(1)+2f(0)=1. Pour x=0: f(0)+2f(1)=0 => f(0)=-2f(1). En substituant: f(1) - 4f(1) = 1 => -3f(1)=1 => f(1) = -1/3."
+            },
+            {
+                id: 10,
+                category: "Mathématiques",
+                question: "Combien d'entiers entre 1 et 100 ne sont divisibles ni par 2, ni par 3, ni par 5 ?",
+                options: ["26", "29", "32", "35"],
+                answer: 0,
+                explanation: "En utilisant le principe d'inclusion-exclusion, il y a exactement 26 entiers qui n'ont ni 2, ni 3, ni 5 comme facteurs."
+            },
+            // MATHÉMATIQUES - GÉOMÉTRIE
+            {
+                id: 11,
+                category: "Géométrie",
+                question: "Dans un triangle rectangle, l'hypoténuse mesure 10 cm et le rayon du cercle inscrit mesure 2 cm. Quel est le périmètre du triangle ?",
+                options: ["20 cm", "24 cm", "28 cm", "30 cm"],
+                answer: 1,
+                explanation: "Pour un triangle rectangle, r = (a + b - c)/2 => 2 = (a + b - 10)/2 => a + b = 14. Périmètre = a + b + c = 14 + 10 = 24 cm."
+            },
+            {
+                id: 12,
+                category: "Géométrie",
+                question: "On augmente la longueur d'un rectangle de 20% et on diminue sa largeur de 20%. Comment varie son aire ?",
+                options: ["Elle ne varie pas", "Elle augmente de 4%", "Elle diminue de 4%", "Elle diminue de 2%"],
+                answer: 2,
+                explanation: "Nouvelle aire = (1.20 * L) * (0.80 * l) = 0.96 * L * l. Soit une baisse de 4% (100% - 96%)."
+            },
+            {
+                id: 13,
+                category: "Géométrie",
+                question: "Quelle est la somme des angles internes d'un décagone (polygone à 10 côtés) convexe ?",
+                options: ["1440°", "1800°", "1260°", "1620°"],
+                answer: 0,
+                explanation: "La formule pour la somme des angles d'un polygone à n côtés est (n - 2) * 180°. Pour n=10: (10 - 2) * 180° = 8 * 180° = 1440°."
+            },
+            // PROBABILITÉS & DÉNOMBREMENT
+            {
+                id: 14,
+                category: "Probabilités",
+                question: "On lance 3 dés équilibrés à 6 faces. Quelle est la probabilité d'obtenir une somme égale à 18 ?",
+                options: ["1/216", "3/216", "1/36", "1/108"],
+                answer: 0,
+                explanation: "La seule combinaison possible pour obtenir 18 est (6, 6, 6). Il y a 6^3 = 216 tirages. La probabilité est donc 1/216."
+            },
+            {
+                id: 15,
+                category: "Probabilités",
+                question: "Combien de diagonales possède un octogone convexe ?",
+                options: ["16", "20", "28", "32"],
+                answer: 1,
+                explanation: "Formule du nombre de diagonales = n(n-3)/2. Pour n=8 : 8*(5)/2 = 20."
+            }
+        ];
+
+        // --- ÉTAT GLOBAL ---
+        let currentQuestionIndex = 0;
+        let userAnswers = new Array(questions.length).fill(null);
+        let userProfile = { name: "", school: "" };
+        let timerInterval = null;
+        let totalSeconds = 45 * 60; // 45 minutes
+        let chartInstance = null;
+
+        // --- FONCTIONS LOGIQUE DE L'ÉPREUVE ---
+
+        function startTest(event) {
+            event.preventDefault();
+            userProfile.name = document.getElementById('fullName').value.trim();
+            userProfile.school = document.getElementById('schoolName').value.trim();
+
+            if (!userProfile.name || !userProfile.school) return;
+
+            // UI Switch
+            document.getElementById('welcomeSection').classList.add('hidden');
+            document.getElementById('testSection').classList.remove('hidden');
+            document.getElementById('testSection').classList.add('flex');
+            document.getElementById('timerContainer').classList.remove('hidden');
+            document.getElementById('timerContainer').classList.add('flex');
+
+            // Timer launch
+            startTimer();
+            // Load First Question
+            renderQuestion();
+        }
+
+        function startTimer() {
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                totalSeconds--;
+                updateTimerDisplay();
+
+                if (totalSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    finishTest(true); // Soumission automatique
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            const text = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('timerText').innerText = text;
+
+            // Alerte visuelle si moins de 5 min
+            if (totalSeconds < 300) {
+                document.getElementById('timerText').classList.remove('text-amber-400');
+                document.getElementById('timerText').classList.add('text-rose-500');
+            }
+        }
+
+        function renderQuestion() {
+            const q = questions[currentQuestionIndex];
+            
+            // Textes & Badges
+            document.getElementById('questionTitle').innerText = `${q.id}. ${q.question}`;
+            document.getElementById('progressText').innerText = `Question ${currentQuestionIndex + 1} / ${questions.length}`;
+            document.getElementById('progressBar').style.width = `${((currentQuestionIndex + 1) / questions.length) * 100}%`;
+            document.getElementById('categoryBadge').innerText = q.category;
+
+            // Rendu des options
+            const optionsContainer = document.getElementById('optionsContainer');
+            optionsContainer.innerHTML = '';
+
+            q.options.forEach((option, idx) => {
+                const isSelected = userAnswers[currentQuestionIndex] === idx;
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.onclick = () => selectOption(idx);
+                btn.className = `w-full text-left p-4 rounded-xl border transition-all flex items-center justify-between ${
+                    isSelected 
+                    ? 'bg-indigo-600/20 border-indigo-500 text-white font-semibold ring-2 ring-indigo-500/50' 
+                    : 'bg-slate-800/40 border-slate-700/80 text-slate-300 hover:bg-slate-800 hover:border-slate-600'
+                }`;
+
+                btn.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <span class="w-7 h-7 rounded-lg text-xs flex items-center justify-center font-bold ${
+                            isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300'
+                        }">${String.fromCharCode(65 + idx)}</span>
+                        <span>${option}</span>
+                    </div>
+                    ${isSelected ? '<i class="fa-solid fa-circle-check text-indigo-400"></i>' : ''}
+                `;
+                optionsContainer.appendChild(btn);
+            });
+
+            // Boutons de navigation
+            document.getElementById('prevBtn').disabled = currentQuestionIndex === 0;
+
+            if (currentQuestionIndex === questions.length - 1) {
+                document.getElementById('nextBtn').classList.add('hidden');
+                document.getElementById('submitBtn').classList.remove('hidden');
+                document.getElementById('submitBtn').classList.add('flex');
+            } else {
+                document.getElementById('nextBtn').classList.remove('hidden');
+                document.getElementById('submitBtn').classList.add('hidden');
+                document.getElementById('submitBtn').classList.remove('flex');
+            }
+        }
+
+        function selectOption(index) {
+            userAnswers[currentQuestionIndex] = index;
+            renderQuestion();
+        }
+
+        function navigateQuestion(direction) {
+            currentQuestionIndex += direction;
+            renderQuestion();
+        }
+
+        function confirmFinishTest() {
+            const unanswered = userAnswers.filter(a => a === null).length;
+            if (unanswered > 0) {
+                if (!confirm(`Il vous reste ${unanswered} question(s) sans réponse. Voulez-vous vraiment terminer ?`)) {
+                    return;
+                }
+            }
+            finishTest(false);
+        }
+
+        function finishTest(autoSubmitted = false) {
+            clearInterval(timerInterval);
+            document.getElementById('timerContainer').classList.add('hidden');
+            document.getElementById('testSection').classList.add('hidden');
+            document.getElementById('resultSection').classList.remove('hidden');
+
+            if (autoSubmitted) {
+                alert("Le temps de 45 minutes est écoulé ! Vos réponses ont été soumises.");
+            }
+
+            calculateAndDisplayResults();
+        }
+
+        // --- CALCULS ET ÉTUDE DES RÉSULTATS ---
+
+        function calculateAndDisplayResults() {
+            let score = 0;
+            const categoryStats = {};
+
+            questions.forEach((q, idx) => {
+                if (!categoryStats[q.category]) {
+                    categoryStats[q.category] = { correct: 0, total: 0 };
+                }
+                categoryStats[q.category].total++;
+
+                if (userAnswers[idx] === q.answer) {
+                    score++;
+                    categoryStats[q.category].correct++;
+                }
+            });
+
+            // Score ramené sur 20
+            const scoreOn20 = ((score / questions.length) * 20).toFixed(1);
+            const percentage = Math.round((score / questions.length) * 100);
+
+            document.getElementById('scoreDisplay').innerText = `${scoreOn20} / 20`;
+            document.getElementById('scorePercentage').innerText = `${score} bonne(s) réponse(s) sur ${questions.length} (${percentage}%)`;
+
+            // Rendu Chart.js
+            renderCategoryChart(categoryStats);
+
+            // Génération de l'analyse personnalisée
+            generateEvaluationText(scoreOn20, categoryStats);
+
+            // Rendu de la correction
+            renderReview();
+
+            // Préparation données Certificat
+            setupCertificateData(scoreOn20, percentage);
+        }
+
+        function renderCategoryChart(stats) {
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+            const labels = Object.keys(stats);
+            const scores = labels.map(cat => Math.round((stats[cat].correct / stats[cat].total) * 100));
+
+            if (chartInstance) chartInstance.destroy();
+
+            chartInstance = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Taux de réussite (%)',
+                        data: scores,
+                        backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                        borderColor: 'rgba(99, 102, 241, 1)',
+                        pointBackgroundColor: 'rgba(167, 139, 250, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            pointLabels: { color: '#94a3b8', font: { size: 11 } },
+                            ticks: { display: false, backdropColor: 'transparent' },
+                            suggestedMin: 0,
+                            suggestedMax: 100
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        function generateEvaluationText(scoreOn20, stats) {
+            const evalContainer = document.getElementById('evaluationText');
+            let globalComment = "";
+            let mention = "";
+
+            if (scoreOn20 >= 16) {
+                mention = "Niveau Excellent";
+                globalComment = "Résultats remarquables ! Vous possédez une excellente capacité de raisonnement abstrait et une très bonne maîtrise des concepts mathématiques.";
+            } else if (scoreOn20 >= 12) {
+                mention = "Bon Niveau";
+                globalComment = "Bon travail ! Vos bases sont solides et votre esprit logique est bien développé. Quelques erreurs légères à corriger.";
+            } else if (scoreOn20 >= 8) {
+                mention = "Niveau Moyen";
+                globalComment = "Résultat correct, mais des lacunes subsistent dans certains types de raisonnement mathématique ou sous la pression du temps.";
+            } else {
+                mention = "À Perfectionner";
+                globalComment = "L'épreuve s'est révélée exigeante. Un entraînement régulier aux énigmes logiques et aux bases algébriques vous fera progresser rapidement.";
+            }
+
+            // Trouver les points forts et faibles
+            let bestCat = "", worstCat = "";
+            let maxRatio = -1, minRatio = 999;
+
+            Object.keys(stats).forEach(cat => {
+                const ratio = stats[cat].correct / stats[cat].total;
+                if (ratio > maxRatio) { maxRatio = ratio; bestCat = cat; }
+                if (ratio < minRatio) { minRatio = ratio; worstCat = cat; }
+            });
+
+            evalContainer.innerHTML = `
+                <p><strong>Appréciation :</strong> <span class="text-indigo-400 font-semibold">${mention}</span>. ${globalComment}</p>
+                <div class="mt-3 p-3 bg-slate-800/60 rounded-xl border border-slate-700/50 space-y-1">
+                    <p><i class="fa-solid fa-circle-up text-emerald-400 mr-1.5"></i> <strong>Point fort :</strong> ${bestCat} (${Math.round(maxRatio*100)}% de réussite)</p>
+                    <p><i class="fa-solid fa-circle-down text-rose-400 mr-1.5"></i> <strong>Axe d'amélioration :</strong> ${worstCat} (${Math.round(minRatio*100)}% de réussite)</p>
+                </div>
+            `;
+        }
+
+        function renderReview() {
+            const container = document.getElementById('answersReviewContainer');
+            container.innerHTML = '';
+
+            questions.forEach((q, idx) => {
+                const userAns = userAnswers[idx];
+                const isCorrect = userAns === q.answer;
+
+                const card = document.createElement('div');
+                card.className = `p-4 rounded-xl border text-sm ${
+                    isCorrect ? 'bg-emerald-950/20 border-emerald-800/50' : 'bg-rose-950/20 border-rose-800/50'
+                }`;
+
+                card.innerHTML = `
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="font-medium text-slate-200">
+                            <span class="font-bold">${idx + 1}.</span> ${q.question}
+                        </div>
+                        <span class="shrink-0 px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                            isCorrect ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                        }">
+                            ${isCorrect ? 'Correct' : 'Incorrect'}
+                        </span>
+                    </div>
+                    <div class="mt-2 text-xs space-y-1">
+                        <p class="text-slate-400">Votre réponse : <span class="${isCorrect ? 'text-emerald-400' : 'text-rose-400'} font-semibold">${userAns !== null ? q.options[userAns] : 'Aucune réponse'}</span></p>
+                        ${!isCorrect ? `<p class="text-slate-400">Réponse attendue : <span class="text-emerald-400 font-semibold">${q.options[q.answer]}</span></p>` : ''}
+                        <p class="text-slate-400 pt-1 italic border-t border-slate-800/60 mt-2"><i class="fa-solid fa-lightbulb text-amber-400 mr-1"></i> Explication : ${q.explanation}</p>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // --- GÉNÉRATION D'ATTESTATION PDF ---
+
+        function setupCertificateData(scoreOn20, percentage) {
+            document.getElementById('certName').innerText = userProfile.name;
+            document.getElementById('certSchool').innerText = `Établissement : ${userProfile.school}`;
+            document.getElementById('certScore').innerText = `${scoreOn20} / 20 (${percentage}%)`;
+            
+            // Date du jour
+            const today = new Date().toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' });
+            document.getElementById('certDate').innerText = `Date : ${today}`;
+
+            // ID unique
+            const randomId = 'SAM-MATH-' + Math.floor(100000 + Math.random() * 900000);
+            document.getElementById('certId').innerText = randomId;
+
+            // Mention
+            let mention = "Participation";
+            if (scoreOn20 >= 16) mention = "Mention : Excellent (Très Bien)";
+            else if (scoreOn20 >= 14) mention = "Mention : Bien";
+            else if (scoreOn20 >= 12) mention = "Mention : Assez Bien";
+            else if (scoreOn20 >= 10) mention = "Mention : Encouragements du Jury";
+
+            document.getElementById('certMention').innerText = mention;
+        }
+
+        function downloadCertificate() {
+            const element = document.getElementById('certificateTemplate');
+            
+            const opt = {
+                margin:       0,
+                filename:     `Attestation_Olympiades_SteveSAM_${userProfile.name.replace(/\s+/g, '_')}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, logging: false, useCORS: true },
+                jsPDF:        { unit: 'pt', format: 'a4', orientation: 'landscape' }
+            };
+
+            html2pdf().set(opt).from(element).save();
+        }
+    </script>
+</body>
+</html>
